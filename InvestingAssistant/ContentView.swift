@@ -9,46 +9,27 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
-
+    @State private var selectedSection: SectionType? = .marketData
+    
     var body: some View {
-        NavigationSplitView {
+        NavigationView {
+            // 左侧导航栏
             List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
-                }
-                .onDelete(perform: deleteItems)
-            }
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
-            .toolbar {
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
+                ForEach(SectionType.allCases, id: \.self) { section in
+                    NavigationLink(
+                        destination: WorkspaceView(section: section),
+                        tag: section,
+                        selection: $selectedSection
+                    ) {
+                        Label(section.title, systemImage: section.iconName)
                     }
                 }
             }
-        } detail: {
-            Text("Select an item")
-        }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
+            .listStyle(SidebarListStyle())
+            .navigationTitle("金融市场分析")
+            
+            // 右侧工作区
+            WorkspaceView(section: selectedSection!)
         }
     }
 }
@@ -57,3 +38,52 @@ struct ContentView: View {
     ContentView()
         .modelContainer(for: Item.self, inMemory: true)
 }
+
+// 定义不同模块的类型
+enum SectionType: String, CaseIterable {
+    case marketData, stockData, financialAnalysis, businessAnalysis
+    
+    var title: String {
+        switch self {
+        case .marketData: return "市场数据"
+        case .stockData: return "个股数据"
+        case .financialAnalysis: return "财务分析"
+        case .businessAnalysis: return "业务分析"
+        }
+    }
+    
+    var iconName: String {
+        switch self {
+        case .marketData: return "chart.bar"
+        case .stockData: return "chart.line.uptrend.xyaxis"
+        case .financialAnalysis: return "doc.text.magnifyingglass"
+        case .businessAnalysis: return "briefcase.fill"
+        }
+    }
+}
+
+// 右侧工作区的内容视图
+struct WorkspaceView: View {
+    var section: SectionType
+    
+    var body: some View {
+        VStack {
+            switch section {
+            case .marketData:
+                MarketDataView()
+            case .stockData:
+                StockDataView()
+            case .financialAnalysis:
+                FinancialAnalysisView()
+            case .businessAnalysis:
+                BusinessAnalysisView()
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .navigationTitle("投资分析工具")
+        //.navigationTitle(section.title)
+    }
+}
+
+
+
